@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body {
+  margin: 0px;
+}
+@font-face {
+  font-family: Alexandria;
+  src: url(./assets/Alexandria-Medium.ttf) format("truetype");
+}
