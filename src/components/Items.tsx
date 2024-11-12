@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+// Items.tsx
+
+import React from "react";
 import {
   Box,
   Card,
@@ -7,19 +9,33 @@ import {
   Typography,
   Dialog,
   DialogContent,
-  Slide,
+  DialogTitle,
   IconButton,
+  useMediaQuery,
 } from "@mui/material";
-import { Category, MenuItem } from "../Types/Types";
 import CloseIcon from "@mui/icons-material/Close";
-import { TransitionProps } from "@mui/material/transitions";
-import { keyframes } from "@emotion/react";
+import { motion } from "framer-motion";
+import { Category, MenuItem } from "../Types/Types";
 
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
 }
+
+const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other }) => {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box padding={1}>{children}</Box>}
+    </div>
+  );
+};
 
 export default function Items({
   menuData,
@@ -28,14 +44,48 @@ export default function Items({
   menuData: Category[];
   activeTab: number;
 }) {
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [open, setOpen] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState<MenuItem | null>(null);
 
   const handleClickOpen = (item: MenuItem) => {
     setSelectedItem(item);
+    setOpen(true);
   };
 
   const handleClose = () => {
+    setOpen(false);
     setSelectedItem(null);
+  };
+
+  
+
+  // Define the motion component
+  const MotionDialog = motion(Dialog);
+
+  const dialogVariants = {
+    initial: {
+      opacity: 0,
+      y: "100vh",
+      scale: 0.8,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 500,
+        damping: 30,
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: "100vh",
+      scale: 0.8,
+      transition: {
+        duration: 0.5,
+      },
+    },
   };
 
   return (
@@ -46,10 +96,10 @@ export default function Items({
             {category.title}
           </Typography>
           <Box>
-            {[...category.items].map((item) => (
+            {category.items.map((item) => (
               <Card
                 key={item.id}
-                sx={{ width: "100%", marginBottom: 2 }}
+                sx={{ width: "100%", marginBottom: 2, cursor: "pointer" }}
                 onClick={() => handleClickOpen(item)}
               >
                 <CardMedia component="img" image={item.image} alt={item.title} />
@@ -64,77 +114,53 @@ export default function Items({
         </TabPanel>
       ))}
 
-      {selectedItem && (
-        <Dialog
-          open={Boolean(selectedItem)}
-          onClose={handleClose}
-          TransitionComponent={Transition}
-          keepMounted
-          PaperProps={{
-            sx: {
-              minWidth: "80vw",
-              borderRadius: 4,
-              transformOrigin: "bottom center",
-              animation: `${scaleUp} 0.4s ease`,
-            },
-          }}
-        >
-          <IconButton
-            edge="end"
-            color="inherit"
-            onClick={handleClose}
-            aria-label="close"
-            sx={{
-              position: "absolute",
-              right: 8,
-              top: 8,
-              color: (theme) => theme.palette.grey[500],
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-          <DialogContent>
-            <CardMedia component="img" image={selectedItem.image} alt={selectedItem.title} />
-            <Typography variant="h5" gutterBottom>
+      {/* Animated Dialog */}
+      <MotionDialog
+        open={open}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          style: { borderRadius: 20, overflow: "hidden" },
+          component: motion.div,
+          variants: dialogVariants,
+          initial: "initial",
+          animate: "animate",
+          exit: "exit",
+        }}
+        BackdropProps={{
+          style: {
+            backdropFilter: "blur(5px)",
+          },
+          // Use framer-motion for backdrop if needed
+        }}
+      >
+        {selectedItem && (
+          <>
+            <DialogTitle sx={{ m: 0, p: 2 }}>
               {selectedItem.title}
-            </Typography>
-            <Typography color="textSecondary" gutterBottom>
-              {selectedItem.desc}
-            </Typography>
-            <Typography color="primary">₪{selectedItem.price}</Typography>
-          </DialogContent>
-        </Dialog>
-      )}
+              <IconButton
+                aria-label="close"
+                onClick={handleClose}
+                sx={{
+                  position: "absolute",
+                  right: 8,
+                  top: 8,
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Typography>{selectedItem.desc}</Typography>
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                ₪{selectedItem.price}
+              </Typography>
+              {/* Add more item details as needed */}
+            </DialogContent>
+          </>
+        )}
+      </MotionDialog>
     </>
   );
 }
-
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other }) => (
-  <div role="tabpanel" id={`tabpanel-${index}`} aria-labelledby={`tab-${index}`} {...other}>
-    {value === index && <Box padding={1}>{children}</Box>}
-  </div>
-);
-
-// Define the scale-up animation with keyframes
-const scaleUp = keyframes`
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.02);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-`;
-
-// Slide Transition Component
-const Transition = React.forwardRef(function Transition(
-  props: TransitionProps & { children: React.ReactElement<any, any> },
-  ref: React.Ref<unknown>
-) {
-  return <Slide direction="up" ref={ref} {...props} />;
-});
